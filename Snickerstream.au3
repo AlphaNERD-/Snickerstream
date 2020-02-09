@@ -42,14 +42,14 @@ Global $g_hGUI, $g_hGfxCtxt, $g_hBitmap, $g_hBMP, $g_hBMP2, $g_hGraphics, $iFPS 
 Global Const $sVersion = "v1.10", $sGUITitle = "Snickerstream " & $sVersion, $sIconPath=@TempDir&"\snickerstream.ico"
 
 ;Globals - Main and Advanced GUI
-Global $sIpAddr = "0.0.0.0", $iPriorityMode = 0, $iPriorityFactor = 5, $iImageQuality = 70, $iQoS = 20, $AdvancedMenu = 0, $aHotkeys[10] = ["26","28","25","27","0D","53","20","1B","51","45"]
+Global $sIpAddr = "0.0.0.0", $iPriorityMode = 0, $iPriorityFactor = 5, $iImageQuality = 70, $iQoS = 20, $AdvancedMenu = 0, $aHotkeys[10] = ["26","28","25","27","0D","53","20","1B","51","45"], $bShowFramerate = True
 
 ;Globals - Config
 Global $sFname = @ScriptDir & "\settings.ini", $sPCIpAddr = $sIpAddr, $iLogLevel = 0, $bUseNTR = True, $iLogConsole = 0
-Global Const $sSectionName = "Snickerstream", $aIniSections[31] = ["IpAddr", "PriorityMode", "PriorityFactor", "ImageQuality", _
+Global Const $sSectionName = "Snickerstream", $aIniSections[32] = ["IpAddr", "PriorityMode", "PriorityFactor", "ImageQuality", _
 		"QoS", "Interpolation", "Layoutmode", "PCIpAddr", "NoDisplayIPWarn", "Loglevel", "DontCheckSettings", "UseD2D", "GDIPWarn", "NFCLastAnswer", _
 		"WaitRemoteplayInit", "Framelimit", "ReturnAfterMsec", "DontCheckForUpdates", "CustomWidth", "CustomHeight", "ListenPort", "AdvWarning", "TopScalingFactor", _
-		"BottomScalingFactor", "CenterScreens", "Hotkeys", "UseNTR", "LogConsole", "CustomWidth2", "CustomHeight2", "EnableHzMNFCPatch"], _
+		"BottomScalingFactor", "CenterScreens", "Hotkeys", "UseNTR", "LogConsole", "CustomWidth2", "CustomHeight2", "EnableHzMNFCPatch", "ShowFramerate"], _
 		$sLogFname = "log.txt", $sSettingSeparator = "|"
 Global Const $iD2D1InterpModes[6] = [$D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, $D2D1_INTERPOLATION_MODE_LINEAR, $D2D1_INTERPOLATION_MODE_CUBIC, _
 $D2D1_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR, $D2D1_INTERPOLATION_MODE_ANISOTROPIC, $D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC]
@@ -423,11 +423,16 @@ Func StreamingLoop()
 		If TimerDiff($hTimer) >= 1000 Then
 			$hTimer = TimerInit()
 			If $iImgNum<>0 Then $iFPS = Round($iFPS/$iImgNum)
-			If $iFramelock = 0 Then
-				$sWinTitle = $sSectionName & " - " & $iFPS & $sFPSString
+
+			If $bShowFramerate == True Then
+				If $iFramelock = 0 Then
+					$sWinTitle = $sSectionName & " - " & $iFPS & $sFPSString
+				Else
+					$sWinTitle = $sSectionName & " - " & $iFPS & $sFPSString & ", screen" & $iPriorityMode & " " & $iFramelockedFPS & $sFPSString
+					$iFramelockedFPS = 0
+				EndIf
 			Else
-				$sWinTitle = $sSectionName & " - " & $iFPS & $sFPSString & ", screen" & $iPriorityMode & " " & $iFramelockedFPS & $sFPSString
-				$iFramelockedFPS = 0
+				$sWinTitle = $sSectionName
 			EndIf
 			If $iListenPort <> 8001 Then $sWinTitle &= ", port " & $iListenPort
 			WinSetTitle($g_hGUI, "", $sWinTitle)
@@ -693,6 +698,7 @@ Func CreateMainGUIandSettings()
 		$bUseNTR = IniRead($sFname, $sSectionName, $aIniSections[26], $bUseNTR)
 		$iLogConsole = IniRead($sFname, $sSectionName, $aIniSections[27], $iLogConsole)
 		$bEnableHzMNFCPatch = IniRead($sFname, $sSectionName, $aIniSections[30], $bEnableHzMNFCPatch)
+		$bShowFramerate = IniRead($sFname, $sSectionName, $aIniSections[31], $bShowFramerate)
 		CheckPCIP()
 	Else
 		WriteConfig()
@@ -799,6 +805,7 @@ Func WriteConfig()
 	If IniRead($sFname, $sSectionName, $aIniSections[14], -1) < 0 Then IniWrite($sFname, $sSectionName, $aIniSections[14], 1000)
 	IniWrite($sFname, $sSectionName, $aIniSections[20], $iListenPort)
 	If IniRead($sFname, $sSectionName, $aIniSections[25], 0)==0 Then IniWrite($sFname, $sSectionName, $aIniSections[25], _ArrayToString($aHotkeys,$sSettingSeparator))
+	IniWrite($sFname, $sSectionName, $aIniSections[31], $bShowFramerate)
 EndFunc   ;==>WriteConfig
 
 Func SendNFC()
